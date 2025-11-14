@@ -24,6 +24,7 @@ export default class Canvas {
   gallery: Gallery
   scrollY: number
   lastDirection: number = 1
+  lastTouchY: number | null = null
 
   constructor() {
     this.element = document.getElementById("webgl") as HTMLCanvasElement
@@ -123,6 +124,38 @@ export default class Canvas {
     window.addEventListener("mousemove", this.onMouseMove.bind(this))
     window.addEventListener("resize", this.onResize.bind(this))
     window.addEventListener("wheel", this.onWheel.bind(this))
+    window.addEventListener(
+      "touchstart",
+      (e) => {
+        if (e.touches && e.touches.length > 0) {
+          this.lastTouchY = e.touches[0].clientY
+        }
+      },
+      { passive: true }
+    )
+    window.addEventListener(
+      "touchmove",
+      (e) => {
+        if (e.touches && e.touches.length > 0 && this.lastTouchY !== null) {
+          const y = e.touches[0].clientY
+          const deltaY = this.lastTouchY - y
+          const direction = Math.sign(deltaY) || this.lastDirection
+          this.lastDirection = direction
+          this.gallery.updateScroll(
+            (deltaY * this.sizes.height) / window.innerHeight,
+            this.lastDirection
+          )
+        }
+      },
+      { passive: true }
+    )
+    window.addEventListener(
+      "touchend",
+      () => {
+        this.lastTouchY = null
+      },
+      { passive: true }
+    )
   }
 
   onResize() {
