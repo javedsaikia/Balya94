@@ -2,9 +2,9 @@
 import glsl from "vite-plugin-glsl"
 import { defineConfig } from "vite"
 
-export default defineConfig({
+export default defineConfig(() => ({
   plugins: [glsl()],
-  base: "/Balya94/",
+  base: process.env.VITE_BASE ?? (process.env.GITHUB_ACTIONS ? "/Balya94/" : "/"),
   server: {
     watch: {
       usePolling: true,
@@ -25,4 +25,4 @@ export default defineConfig({
       "Surrogate-Control": "no-store",
     },
   },
-})
+}))

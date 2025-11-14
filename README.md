@@ -21,6 +21,23 @@ This repo is configured to deploy to GitHub Pages using an Actions workflow:
 
 On push to `main`, GitHub Actions builds and publishes to Pages securely via OIDC.
 
+### Netlify
+
+- Add the repository to Netlify and set:
+  - Build command: `npm run build`
+  - Publish directory: `dist`
+  - Environment: `VITE_BASE=/`
+- A `netlify.toml` is included to ensure consistent settings.
+
+### Vercel
+
+- Import the repository in Vercel and set:
+  - Install command: `npm ci`
+  - Build command: `npm run build`
+  - Output directory: `dist`
+  - Environment: `VITE_BASE=/`
+- A `vercel.json` is included to define build/output.
+
 ## Assets
 
 Images are served from `public/frames/` and composed into a texture atlas at runtime.
@@ -29,6 +46,12 @@ Images are served from `public/frames/` and composed into a texture atlas at run
 
 - Dev/preview servers send `Cache-Control: no-store` headers for assets.
 - No secrets are committed. GitHub Pages uses short-lived OIDC tokens.
+
+## Troubleshooting
+
+- If assets 404 on Netlify/Vercel, ensure `VITE_BASE=/` in environment.
+- If assets 404 on GitHub Pages, ensure `VITE_BASE=/Balya94/` or customize to repo name.
+- Verify build logs for missing modules or misconfigured output directory.
 
 ## Version & Timestamp
 
