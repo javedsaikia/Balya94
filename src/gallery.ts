@@ -8,6 +8,29 @@ import centerfragment from "./shaders/center-fragment.glsl"
 
 import gsap from "gsap"
 
+export const IMAGE_PATHS = [
+  "/frames/512/p1.jpg",
+  "/frames/512/p2.jpg",
+  "/frames/512/p3.jpg",
+  "/frames/512/p4.jpg",
+  "/frames/512/p5.jpg",
+  "/frames/512/p6.jpg",
+  "/frames/512/p7.jpg",
+  "/frames/512/p8.jpg",
+  "/frames/512/p9.jpg",
+  "/frames/512/p10.jpg",
+  "/frames/512/p11.jpg",
+  "/frames/512/p12.jpg",
+  "/frames/512/p13.jpg",
+  "/frames/512/14.jpg",
+  "/frames/512/15.jpg",
+  "/frames/512/16.jpg",
+  "/frames/512/17.jpg",
+  "/frames/512/18.jpg",
+  "/frames/512/19.jpg",
+  "/frames/512/20.jpg",
+]
+
 interface Props {
   scene: THREE.Scene
   cameraZ: number
@@ -62,59 +85,58 @@ export default class Gallery {
   }
 
   async loadTextureAtlas() {
-    // Define your image paths
-    const imagePaths = [
-      "/frames/512/p1.jpg",
-      "/frames/512/p2.jpg",
-      "/frames/512/p3.jpg",
-      "/frames/512/p4.jpg",
-      "/frames/512/p5.jpg",
-      "/frames/512/p6.jpg",
-      "/frames/512/p7.jpg",
-      "/frames/512/p8.jpg",
-      "/frames/512/p9.jpg",
-      "/frames/512/p10.jpg",
-      "/frames/512/p11.jpg",
-      "/frames/512/p12.jpg",
-      "/frames/512/p13.jpg",
-      "/frames/512/14.jpg",
-      "/frames/512/15.jpg",
-      "/frames/512/16.jpg",
-      "/frames/512/17.jpg",
-      "/frames/512/18.jpg",
-      "/frames/512/19.jpg",
-      "/frames/512/20.jpg",
-    ]
+    const imagePaths = IMAGE_PATHS
 
-    // Load all images first to get their dimensions
     const imagePromises = imagePaths.map((path) => {
       return new Promise<HTMLImageElement>((resolve) => {
         const img = new Image()
         img.onload = () => resolve(img)
+        img.onerror = () => resolve(img)
         img.src = path
       })
     })
 
-    const images = await Promise.all(imagePromises)
+    let images: HTMLImageElement[] = []
+    try {
+      images = await Promise.all(imagePromises)
+    } catch {
+      images = []
+    }
+
+    const validImages = images.filter(
+      (img) => img.naturalWidth > 0 && img.naturalHeight > 0
+    )
 
     // Calculate atlas dimensions (for simplicity, we'll stack images vertically)
-    const atlasWidth = Math.max(...images.map((img) => img.width))
+    const atlasWidth = Math.max(...validImages.map((img) => img.width))
     let totalHeight = 0
 
     // First pass: calculate total height
-    images.forEach((img) => {
+    validImages.forEach((img) => {
       totalHeight += img.height
     })
 
     // Create canvas with calculated dimensions
     const canvas = document.createElement("canvas")
-    canvas.width = atlasWidth
-    canvas.height = totalHeight
+    canvas.width = atlasWidth || 1
+    canvas.height = totalHeight || 1
     const ctx = canvas.getContext("2d")!
 
     // Second pass: draw images and calculate normalized coordinates
+    if (validImages.length === 0) {
+      const canvas = document.createElement("canvas")
+      canvas.width = 1
+      canvas.height = 1
+      const ctx = canvas.getContext("2d")!
+      ctx.clearRect(0, 0, 1, 1)
+      this.atlasTexture = new THREE.Texture(canvas)
+      this.atlasTexture.needsUpdate = true
+      this.imageInfos = []
+      return
+    }
+
     let currentY = 0
-    this.imageInfos = images.map((img) => {
+    this.imageInfos = validImages.map((img) => {
       const aspectRatio = img.width / img.height
 
       // Draw the image
@@ -144,6 +166,7 @@ export default class Gallery {
   }
 
   createInstancedMesh() {
+    if (!this.atlasTexture || this.imageInfos.length === 0) return
     //const geometry = new THREE.PlaneGeometry(1.7, 1.7)
     const geometry = new THREE.BoxGeometry(1.5, 1.5, 0.075)
 
@@ -163,13 +186,13 @@ export default class Gallery {
       transparent: true,
       //blending: THREE.AdditiveBlending,
       uniforms: {
-        uTime: new THREE.Uniform(0),
-        uAtlas: new THREE.Uniform(this.atlasTexture),
-        uScrollY: new THREE.Uniform(this.scrollY),
-        uZrange: new THREE.Uniform(HEIGHT),
-        uMaxZ: new THREE.Uniform(HEIGHT * 0.5),
-        uSpeedY: new THREE.Uniform(0),
-        uDirection: new THREE.Uniform(this.scrollY.direction),
+        uTime: { value: 0 },
+        uAtlas: { value: this.atlasTexture },
+        uScrollY: { value: 0 },
+        uZrange: { value: HEIGHT },
+        uMaxZ: { value: HEIGHT * 0.5 },
+        uSpeedY: { value: 0 },
+        uDirection: { value: this.scrollY.direction },
       },
     })
 
@@ -264,20 +287,21 @@ export default class Gallery {
   }
 
   createCenteredMesh() {
+    if (!this.atlasTexture || this.imageInfos.length === 0) return
     const geometry = new THREE.PlaneGeometry(1.7, 2.3)
     this.material = new THREE.ShaderMaterial({
       vertexShader: centervertex,
       fragmentShader: centerfragment,
       uniforms: {
-        uAtlas: new THREE.Uniform(this.atlasTexture),
-        uTextureCoords: new THREE.Uniform(
-          new THREE.Vector4(
+        uAtlas: { value: this.atlasTexture },
+        uTextureCoords: {
+          value: new THREE.Vector4(
             this.imageInfos[this.textureIndex].uvs.xStart,
             this.imageInfos[this.textureIndex].uvs.xEnd,
             this.imageInfos[this.textureIndex].uvs.yStart,
             this.imageInfos[this.textureIndex].uvs.yEnd
-          )
-        ),
+          ),
+        },
       },
     })
     this.mesh = new THREE.Mesh(geometry, this.material)
