@@ -32,6 +32,5 @@ Images are served from `public/frames/` and composed into a texture atlas at run
 
 ## Version & Timestamp
 
-- Version: `0.0.0`
-- Deployed: <!-- DEPLOY_TS -->
-
+- Version: `0.0.1` (tag `v0.0.1`)
+- Deployed: 2025-11-14
